@@ -1,0 +1,34 @@
+name: validate
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check required files exist
+        run: |
+          test -f SKILL.md
+          test -f SKILL.lite.md
+          test -f README.md
+          test -f llms.txt
+          test -f scripts/backup-server.bat
+          echo "files OK"
+
+      - name: Validate SKILL.md frontmatter
+        run: |
+          head -20 SKILL.md | grep -q '^name:'
+          head -20 SKILL.md | grep -q '^description:'
+          head -20 SKILL.md | grep -q '^version:'
+          head -20 SKILL.md | grep -q '^install:'
+          echo "frontmatter OK"
+
+      - name: Validate SKILL.lite.md frontmatter
+        run: |
+          head -20 SKILL.lite.md | grep -q '^name:'
+          head -20 SKILL.lite.md | grep -q '^description:'
+          echo "lite frontmatter OK"

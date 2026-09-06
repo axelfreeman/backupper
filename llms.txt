@@ -1,0 +1,32 @@
+# Backupper
+
+Free, encrypted, deduplicated backups of remote Linux servers — pulled from a Windows PC with Restic, with **zero software installed on the servers**.
+
+## When to use this skill
+
+- User wants to back up VDS/VPS servers or a fleet of Linux hosts
+- User wants server backups with **client-side encryption** (AES-256)
+- User wants to protect against provider bans / server loss / «как не потерять всё»
+- User wants **scheduled, automated, free** backups
+- User wants **deduplicated** backups (daily snapshots nearly free after the first)
+- User wants to back up **Postgres / MySQL** databases on a server
+- User wants **self-hosted / no-cloud** backups (data never leaves their hardware)
+
+## Key phrases (agent + search discovery)
+
+server backup · self-hosted backup · backup server · back up VPS · back up Linux server · automatic backup · scheduled backup · encrypted backup · deduplicated backup · backup agent · backup skill · free backup · no-cloud backup · restic backup · tar over ssh backup · database backup · postgres backup · mysql backup · как сделать бэкап сервера · резервное копирование сервера · бэкап базы данных · бэкап без облака · локальный бэкап
+
+## Files
+
+- [SKILL.md](SKILL.md) — the skill (instructions for any AI agent)
+- [SKILL.lite.md](SKILL.lite.md) — compact version for low-context models
+- [README.md](README.md) — overview, features, quick start
+- [references/windows-setup.md](references/windows-setup.md) — install Restic, SSH keys, Task Scheduler, fleet pattern
+- [references/database-dumps.md](references/database-dumps.md) — Postgres/MySQL dump patterns
+- [scripts/backup-server.bat](scripts/backup-server.bat) — the single-server backup wrapper (template)
+
+## Install
+
+```
+npx skills add axelfreeman/backupper
+```
