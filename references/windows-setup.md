@@ -1,4 +1,4 @@
-# Windows setup + known-good patterns
+# Windows setup + known-good patterns (fleet-proven)
 
 ## 1. Install Restic (winget alias bug)
 `winget install Restic.Restic` often leaves `restic` "not recognized" even after reopening
@@ -39,16 +39,21 @@ ssh -i %USERPROFILE%\.ssh\id_ed25519 -o BatchMode=yes root@SERVER "echo ok"
 ```
 
 `BatchMode=yes` fails fast instead of prompting — no output except `ok` means it works.
+Record the key fingerprint now — you will need it for the watchdog:
+`ssh-keygen -lf %USERPROFILE%\.ssh\id_ed25519.pub`
 
 ## 4. Init the repo (one-time)
 ```cmd
 set RESTIC_PASSWORD=<strong-passphrase>
 restic -r C:\backups\<name> init
 ```
+One repo per server. Store the same password in every .bat and in verify-backups.ps1.
+Losing the password = backups unrecoverable — keep it somewhere safe.
 
 ## 5. Write the .bat wrapper
-Copy `scripts/backup-server.bat`, fill in CONFIG, and save it with **ASCII** encoding (a
-UTF-8 BOM breaks cmd). Easiest way from PowerShell (here-string, no Notepad encoding issues):
+Copy `scripts/backup-server.bat` (single server) or `scripts/backup-all.bat` (fleet),
+fill in CONFIG, and save it with **ASCII** encoding (a UTF-8 BOM breaks cmd).
+Easiest way from PowerShell (here-string, no Notepad encoding issues):
 
 ```powershell
 @'
@@ -59,25 +64,18 @@ set "REPO=C:\backups\<server-name>"
 set "SERVER=root@<server-ip>"
 set "EXCLUDES="
 set "BASE_EXCL=--exclude=/proc --exclude=/sys --exclude=/dev --exclude=/tmp --exclude=/run --exclude=/var/cache --exclude=/swapfile"
-echo [1/3] Backup %SERVER% ...
-ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 %SERVER% "tar -C / -cf - %BASE_EXCL% %EXCLUDES% / 2>/dev/null" | restic -r %REPO% backup --stdin --stdin-filename rootfs.tar
-if errorlevel 1 goto fail
-echo [2/3] Check integrity ...
-restic -r %REPO% check
-if errorlevel 1 goto fail
-echo [3/3] Cleanup: keep 30 daily snapshots ...
-restic -r %REPO% forget --keep-daily 30 --prune
-echo BACKUP OK
-exit /b 0
-:fail
-echo BACKUP FAILED
-exit /b 1
+ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=30 -o BatchMode=yes %SERVER% "echo ok" >nul 2>&1
+if errorlevel 1 (echo [FAIL] unreachable & exit /b 1)
+ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=30 -o BatchMode=yes %SERVER% "tar -C / -cf - %BASE_EXCL% %EXCLUDES% / 2>/dev/null" | restic -r %REPO% backup --stdin --stdin-filename rootfs.tar
+if errorlevel 1 (echo BACKUP FAILED & exit /b 1) else (echo BACKUP OK)
 '@ | Set-Content -Path "$env:USERPROFILE\Desktop\backup-<name>.bat" -Encoding ASCII
 ```
 
 Run: `cmd /c "%USERPROFILE%\Desktop\backup-<name>.bat"` (or double-click).
+**Always run via cmd.exe — never paste the `ssh | restic` pipe into PowerShell 5.1**
+(it corrupts binary data; pwsh 7 is fine).
 
-## 6. Schedule (Task Scheduler, daily + catch-up)
+## 6. Schedule (Task Scheduler, daily)
 `-StartWhenAvailable` makes a missed run fire as soon as the PC next boots:
 
 ```powershell
@@ -88,22 +86,33 @@ Register-ScheduledTask -TaskName "Backup <name>" -Action $action -Trigger $trigg
 ```
 
 Verify: `Get-ScheduledTask -TaskName "Backup <name>" | Select-Object -ExpandProperty Triggers`.
+Registering with an existing task name replaces it. **When listing/deleting tasks, never
+filter broadly (e.g. `-like "Backup*"`)** — it catches Windows system tasks
+(`ppListBackup`, `CloudRestore`, ...) and spams `Access is denied`.
 
-## 7. Fleet pattern (multiple servers)
-Consolidate to **one `.bat` + one scheduled task**, with a **separate repo per server**.
-Loop each server's `ssh ... | restic` into its own repo, and log per-server `[OK]`/`[FAIL]`:
+## 7. Golden rules (learned the hard way — partial snapshots)
+- **Do not let the PC reboot, sleep, or install updates mid-run.** A killed `ssh.exe` is
+  EOF to restic = the truncated stream is SAVED AS A SUCCESSFUL SNAPSHOT, logged `[OK]`.
+  The only thing that catches it is the size VERIFY next morning.
+- **Do not start a manual catch-up while the scheduled run is about to fire** — two
+  concurrent runs stepping on the same repos/servers produce garbage.
+- After any interrupted run: re-run ONLY the failed legs (see §8), then VERIFY.
+- Every server's tar line should have an **`echo ok` reachability pre-check first**
+  (already in the templates) so an unreachable server fails in 1 second, not after
+  streaming 0 bytes into a fresh snapshot.
 
-```bat
-set "LOG=C:\backups\backup-all.log"
-echo === %date% %time% ===>>"%LOG%"
-ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 root@SERVER1 "tar -C / -cf - --exclude=/proc --exclude=/sys --exclude=/dev --exclude=/tmp --exclude=/run --exclude=/var/cache --exclude=/swapfile / 2>/dev/null" | restic -r C:\backups\repo1 backup --stdin --stdin-filename rootfs.tar
-if errorlevel 1 (echo [FAIL] server1>>"%LOG%") else (echo [OK] server1>>"%LOG%")
-ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 root@SERVER2 "tar -C / -cf - --exclude=/proc --exclude=/sys --exclude=/dev --exclude=/tmp --exclude=/run --exclude=/var/cache --exclude=/swapfile / 2>/dev/null" | restic -r C:\backups\repo2 backup --stdin --stdin-filename rootfs.tar
-if errorlevel 1 (echo [FAIL] server2>>"%LOG%") else (echo [OK] server2>>"%LOG%")
+## 8. Catch-up after an interrupted run
+`ssh | restic` legs are resumable-by-dedup: a re-run re-reads the whole tar but only
+stores what changed. To catch up, run just the affected servers — edit a copy of the
+fleet .bat down to those legs, or use the single-server .bat per server:
+
+```powershell
+cmd /c "%USERPROFILE%\Desktop\backup-<name>.bat"
+powershell -NoProfile -ExecutionPolicy Bypass -File C:\backups\verify-backups.ps1
 ```
 
-Key points:
-- **`if errorlevel 1` after `ssh | restic` checks restic's exit code, not ssh's** — a dead
-  server still yields a 0-byte snapshot logged `[OK]`. Verify real sizes via `snapshots`.
-- **Check `mount` + `du -sh /mnt/*` on each server before writing the tar line** — a server
-  recovered from a disk image may still have a giant qcow2 mounted at `/mnt/recovery`.
+## 9. Fleet pattern (multiple servers)
+Consolidate to **one `.bat` + one scheduled task**, with a **separate repo per server**.
+Use `scripts/backup-all.bat` (sequential, small servers first, per-server `[OK]/[FAIL]`,
+log file, VERIFY at the end). Put `scripts/verify-backups.ps1` at `C:\backups\` and fill
+in the thresholds (see `references/verification-and-failure-modes.md`).

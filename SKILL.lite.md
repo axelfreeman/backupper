@@ -1,7 +1,7 @@
 ---
 name: backupper
 description: Free encrypted deduplicated backups of remote Linux servers from a Windows PC via Restic pull-backup (tar over SSH, zero server install). Use for server/VPS backup, provider-ban protection, scheduled backups.
-version: 0.1.0
+version: 0.2.0
 license: MIT
 install: "npx skills add axelfreeman/backupper"
 ---
@@ -23,7 +23,7 @@ ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 root@SERVER "tar -C
 3. Init repo: `restic -r C:\backups\<name> init` (set strong `RESTIC_PASSWORD`).
 4. Copy `scripts/backup-server.bat`, fill CONFIG, save as **ASCII**.
 5. Schedule daily via Task Scheduler (`-StartWhenAvailable`).
-6. Verify: `restic -r C:\backups\<name> snapshots` shows non-zero size.
+6. Verify sizes: run `scripts/verify-backups.ps1` (per-repo thresholds) — a snapshot row alone proves nothing.
 
 ## Pitfalls (must read)
 
@@ -34,6 +34,8 @@ ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 root@SERVER "tar -C
 - `ssh-keygen -N ""` in PowerShell sets a literal `""` passphrase — generate interactively, press Enter twice.
 - Exclude mount noise + recovery images (`/mnt/recovery`, `/mnt/image`) or you re-pull giant qcow2 files.
 - **Databases need a dump first** — see `references/database-dumps.md`.
+- **A truncated stream is saved as a FULL snapshot** (ssh dies mid-run = EOF = success to restic). Only the size VERIFY catches it — never reboot the PC mid-run; after an interrupted run, re-run the affected legs.
+- **Fleet?** use `scripts/backup-all.bat` (one task, `[OK]/[FAIL]` log) + `scripts/verify-backups.ps1`. Watchdog: `scripts/backup_watchdog.sh`. Details: `references/verification-and-failure-modes.md`.
 
 ## Verify + restore
 
@@ -42,4 +44,5 @@ restic -r C:\backups\<name> snapshots
 restic -r C:\backups\<name> check                 # fast, daily
 restic -r C:\backups\<name> check --read-data     # full, weekly
 restic -r C:\backups\<name> restore latest --target C:\restore\<name>
+powershell -NoProfile -ExecutionPolicy Bypass -File C:\backups\verify-backups.ps1
 ```
