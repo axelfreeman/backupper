@@ -61,6 +61,31 @@ such file or directory` mean the filesystem itself is unhealthy (or churning und
 live docker GC) — fix the server first. Takes minutes on big servers; can be run
 backgrounded.
 
+## Server-side completeness checks (no PC access needed)
+
+You have no access to the PC, but you need to know whether a pull actually FINISHED.
+Freshness alone lies (a truncated run is still a fresh contact). Three checks, in order:
+
+1. **Session-duration check (the strongest one).** In the server's sshd log, pair each
+   PC "Accepted" line with its `pam_unix(sshd:session): session opened/closed` lines:
+   ```bash
+   journalctl -u ssh --since "7 days ago" --no-pager | grep -E "Accepted publickey|session (opened|closed)"
+   ```
+   A COMPLETED full pull = ONE long session that closes CLEANLY. A truncated run = a
+   short session, an aborted close, or an "Accepted" with no clean close nearby.
+2. **Overlap signature.** Two "Accepted" lines ~2 s apart on ONE server = one normal
+   .bat leg (echo-ok pre-check + tar ssh). Same-second "Accepted" lines on TWO
+   DIFFERENT servers = two concurrent backup processes → expect garbage snapshots
+   (a scheduled task fired while a manual run was still going, or a reboot mid-run).
+3. **Disk layout before trusting the size math.** Check the CURRENT layout first —
+   `lsblk`, `df -h`, `du -sh /mnt/*` — before comparing snapshot size to disk usage.
+   A second data disk from an old spec may have been detached (or a recovery image
+   unmounted) since you wrote the excludes; stale specs corrupt the completeness math.
+
+The authoritative probe is `scripts/measure-tar-size.sh`: it runs the real tar ON the
+server (backgrounded, pidfile-guarded) and prints the true byte count to compare
+against the latest snapshot. If `snapshot ≈ probe`, the backup is whole.
+
 ## Other verified facts
 
 - **Snapshot timestamp = backup START**, shown in PC-local time; sshd "Accepted" lines

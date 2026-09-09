@@ -1,7 +1,7 @@
 ---
 name: backupper
 description: Set up free, encrypted, deduplicated backups of remote Linux servers, pulled from a Windows PC with Restic — tar-over-SSH streaming, zero software installed server-side, with size verification against silent partial-snapshot failures. Use when the user wants to back up VDS/VPS servers, protect against provider bans, "как не потерять всё", or automate backups. Works with any AI agent/model.
-version: 0.2.0
+version: 0.3.0
 license: MIT
 install: "npx skills add axelfreeman/backupper"
 ---
@@ -54,7 +54,9 @@ ssh root@SERVER "tar -C / -cf - --exclude=/proc ... / 2>/dev/null" | restic -r C
 5. Schedule with Task Scheduler (daily, `-StartWhenAvailable`) — snippet in
    `references/windows-setup.md`.
 6. **Verify** — `scripts/verify-backups.ps1` (fill in thresholds). A fresh snapshot row
-   alone proves nothing: see `references/verification-and-failure-modes.md`.
+   alone proves nothing: see `references/verification-and-failure-modes.md`. With no PC
+   access, confirm a pull really FINISHED from the server side (sshd session-duration /
+   overlap checks) and cross-check sizes with `scripts/measure-tar-size.sh`.
 7. Optional: hourly server-side freshness watchdog — `scripts/backup_watchdog.sh`.
 
 ## Pitfalls (hard-won — read before you run)
@@ -91,8 +93,9 @@ ssh root@SERVER "tar -C / -cf - --exclude=/proc ... / 2>/dev/null" | restic -r C
 | `scripts/backup-all.bat` | Fleet wrapper: N servers, one task, log, VERIFY |
 | `scripts/verify-backups.ps1` | Size VERIFY vs per-repo thresholds |
 | `scripts/backup_watchdog.sh` | Server-side hourly freshness status (cron) |
+| `scripts/measure-tar-size.sh` | Probe the TRUE tar size on a server (truncation check) |
 | `references/windows-setup.md` | Install, key auth, Task Scheduler, catch-up, golden rules |
-| `references/verification-and-failure-modes.md` | Silent failures, thresholds, tar test, restore drill |
+| `references/verification-and-failure-modes.md` | Silent failures, thresholds, tar test, server-side finish checks |
 | `references/database-dumps.md` | Postgres/MySQL dump patterns |
 
 ## Restore

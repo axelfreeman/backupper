@@ -23,11 +23,12 @@ server backup · self-hosted backup · backup server · back up VPS · back up L
 - [README.md](README.md) — overview, features, quick start
 - [references/windows-setup.md](references/windows-setup.md) — install Restic, SSH keys, Task Scheduler, fleet pattern
 - [references/database-dumps.md](references/database-dumps.md) — Postgres/MySQL dump patterns
-- [references/verification-and-failure-modes.md](references/verification-and-failure-modes.md) — silent failure modes + size verification
+- [references/verification-and-failure-modes.md](references/verification-and-failure-modes.md) — silent failure modes + size verification + server-side finish checks
 - [scripts/backup-server.bat](scripts/backup-server.bat) — the single-server backup wrapper (template)
 - [scripts/backup-all.bat](scripts/backup-all.bat) — fleet wrapper: N servers, one scheduled task, log + VERIFY
 - [scripts/verify-backups.ps1](scripts/verify-backups.ps1) — per-repo size check vs thresholds
 - [scripts/backup_watchdog.sh](scripts/backup_watchdog.sh) — server-side hourly freshness status
+- [scripts/measure-tar-size.sh](scripts/measure-tar-size.sh) — true-size tar probe on a server (truncation check)
 - [examples/backup-demo.md](examples/backup-demo.md) — a full setup transcript
 
 ## Install

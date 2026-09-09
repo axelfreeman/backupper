@@ -4,6 +4,17 @@ All notable changes to this project are documented here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] — 2026-09-09
+
+### Added
+- `scripts/measure-tar-size.sh` — probes the TRUE full-rootfs tar size on a server (backgrounded, pidfile-guarded, mirrors your .bat excludes). Compare against the latest snapshot to prove a pull wasn't truncated.
+- `references/verification-and-failure-modes.md` — new "Server-side completeness checks (no PC access needed)": sshd session-duration check (long clean session = full pull), overlap signature (concurrent runs → garbage), and disk-layout check before trusting size math.
+
+### Changed
+- `SKILL.md` / `SKILL.lite.md` — verify step now covers server-side finish confirmation + size probe; new script in layout.
+- `README.md` — feature + layout + roadmap updated for server-side verification.
+- `llms.txt` / `.github/workflows/validate.yml` — new script indexed and required.
+
 ## [0.2.0] — 2026-09-08
 
 ### Added

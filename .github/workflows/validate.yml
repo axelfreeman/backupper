@@ -20,6 +20,7 @@ jobs:
           test -f scripts/backup-all.bat
           test -f scripts/verify-backups.ps1
           test -f scripts/backup_watchdog.sh
+          test -f scripts/measure-tar-size.sh
           test -f references/verification-and-failure-modes.md
           echo "files OK"
 

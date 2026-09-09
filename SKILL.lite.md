@@ -1,7 +1,7 @@
 ---
 name: backupper
 description: Free encrypted deduplicated backups of remote Linux servers from a Windows PC via Restic pull-backup (tar over SSH, zero server install). Use for server/VPS backup, provider-ban protection, scheduled backups.
-version: 0.2.0
+version: 0.3.0
 license: MIT
 install: "npx skills add axelfreeman/backupper"
 ---
@@ -36,6 +36,7 @@ ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 root@SERVER "tar -C
 - **Databases need a dump first** — see `references/database-dumps.md`.
 - **A truncated stream is saved as a FULL snapshot** (ssh dies mid-run = EOF = success to restic). Only the size VERIFY catches it — never reboot the PC mid-run; after an interrupted run, re-run the affected legs.
 - **Fleet?** use `scripts/backup-all.bat` (one task, `[OK]/[FAIL]` log) + `scripts/verify-backups.ps1`. Watchdog: `scripts/backup_watchdog.sh`. Details: `references/verification-and-failure-modes.md`.
+- **Suspect a truncated pull (no PC access)?** sshd session-duration + overlap checks, and probe the real tar size with `scripts/measure-tar-size.sh` — see `references/verification-and-failure-modes.md`.
 
 ## Verify + restore
 
