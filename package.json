@@ -1,0 +1,24 @@
+{
+  "name": "dsh-backupper",
+  "version": "0.3.0",
+  "description": "Set up free, encrypted, deduplicated backups of remote Linux servers, pulled from a Windows PC with Restic — tar-over-SSH streaming, zero software installed server-side, with size verification against",
+  "type": "module",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "cordis.patch.yml",
+    "SKILL.md"
+  ],
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "agent-skill"
+  ],
+  "license": "MIT",
+  "author": "Axel Freeman (axelfreeman)",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}
