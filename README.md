@@ -77,3 +77,10 @@ Axel Freeman ships releases and improvements to this repo regularly. **Watch + s
 ## License
 
 Tool = [Restic](https://github.com/restic/restic) (BSD-2-Clause). This repo's own files = MIT.
+
+## Need this done for you?
+
+The stack behind this repo runs as a service: [marketing engineering, turnkey](https://axelfreeman.com/marketing-engineer.html) —
+Sprint $900 one-time, Engine $1,900/month, full build $2,900. Scope and prices are published before the first call.
+If you run a local or multi-site business, the countable version of the same work is here:
+[marketing engineer for local business](https://axelfreeman.com/marketing-engineer-for-local-business.html).
